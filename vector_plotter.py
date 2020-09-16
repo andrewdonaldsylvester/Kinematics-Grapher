@@ -33,8 +33,8 @@ class Vector(object):
         self.line = self.canvas.create_line(tx0, ty0, tx1, ty1,
                                             width=line_width, fill=color, arrow=tk.LAST, arrowshape=(12, 15, 6))
 
-        self.point = self.canvas.create_oval(tx0 - (cz*point_radius)/100, ty0 - (cz*point_radius)/100,
-                                             tx0 + (cz*point_radius)/100, ty0 + (cz*point_radius)/100,
+        self.point = self.canvas.create_oval(tx0 - point_radius, ty0 - point_radius,
+                                             tx0 + point_radius, ty0 + point_radius,
                                              fill=color)
 
         vectors.append(self)
@@ -46,8 +46,8 @@ class Vector(object):
 
         self.canvas.coords(self.line, tx0, ty0, tx1, ty1)
 
-        self.canvas.coords(self.point, tx0 - (cz*point_radius)/100, ty0 - (cz*point_radius)/100,
-                           tx0 + (cz*point_radius)/100, ty0 + (cz*point_radius)/100)
+        self.canvas.coords(self.point, tx0 - point_radius, ty0 - point_radius,
+                           tx0 + point_radius, ty0 + point_radius)
 
 
 def create_vector(event):
@@ -106,7 +106,7 @@ def draw_grid():
 
 
 def zoom(event):
-    global small_x_lines, small_y_lines, cz
+    global small_x_lines, small_y_lines, cx, cy, cz
 
     for line in small_x_lines:
         canvas.delete(line)
@@ -114,19 +114,39 @@ def zoom(event):
     for line in small_y_lines:
         canvas.delete(line)
 
-    cz += event.delta * mouse_wheel_sensitivity/120
+    mx, my = tk_to_graph(event.x, event.y)
+
+    if event.delta > 0:
+        cz *= 1.25
+    elif event.delta < 0:
+        cz /= 1.25
 
     if cz <= 2:
         cz = 2
-    elif cz >= w/2 or cz >= h/2:
-        cz = min(w, h)
 
-    print(cz)
+    mx, my = graph_to_tk(mx, my)
+
+    cx += event.x - mx
+    cy += event.y - my
 
     small_x_lines = [canvas.create_line(0, cy + cz * i, w, cy + cz * i) for i in
                      range(floor(-h / (2 * cz)), ceil(h / (2 * cz)) + 1)]
     small_y_lines = [canvas.create_line(cx + cz * i, 0, cx + cz * i, h) for i in
                      range(floor(-w / (2 * cz)), ceil(w / (2 * cz)) + 1)]
+
+    draw_grid()
+
+    print(cz)
+
+
+def clear_graph():
+    global vectors
+
+    for vector in vectors:
+        canvas.delete(vector.line)
+        canvas.delete(vector.point)
+
+    vectors = []
 
     draw_grid()
 
@@ -168,6 +188,9 @@ canvas.bind('<B3-Motion>', drag_grid)
 canvas.bind('<Button-4>', zoom)
 canvas.bind('<Button-5>', zoom)
 canvas.bind('<MouseWheel>', zoom)
+
+clear_button = tk.Button(root, text="Clear Graph", command=clear_graph)
+clear_button.pack()
 
 x_line = canvas.create_line(0, cy, w, cy, width=3)
 y_line = canvas.create_line(cx, 0, cx, h, width=3)
