@@ -1,21 +1,27 @@
-const ctx = document.getElementById('drawingarea');
+// Find the drawing area and set up two.js
+const canvas = document.getElementById('drawingarea');
 const dim = {width: 1600, height: 900};
+
 let two = new Two(dim);
-two.appendTo(ctx);
+two.appendTo(canvas);
 
-let mode = "move";
-
+// Initialize the camera in the center at 100 zoom
 let [cx, cy, cz] = [dim.width/2, dim.height/2, 100];
 
-let previousMousePos = [0, 0];
+// Setup miscellaneous variables
+let mouseMode = "move";
+let mousePos = [0, 0];
 let lmbDown = false;
 
+// Draw the lines through the origin
 let xLine = two.makeLine(0, cy, dim.width, cy);
 let yLine = two.makeLine(cx, 0,  cx, dim.height);
 
 xLine.linewidth = 5;
 yLine.linewidth = 5;
 
+
+// Draw the lines marking the units
 let smallXLines = [];
 let smallYLines = [];
 
@@ -27,50 +33,104 @@ for (let i = -cz; i <= dim.width + cz; i+=cz) {
     smallYLines.push(two.makeLine(i, 0, i, dim.height));
 }
 
-drawGrid();
+// Position these lines
+updateGrid();
 
-ctx.addEventListener("mousedown", startDragGrid, false);
-ctx.addEventListener("mousemove", onMouseMove, false);
-ctx.addEventListener("mouseup", mouseRelease, false);
-ctx.addEventListener("mousewheel", updateZoom, false);
+// Bind mouse events to their respective functions
+canvas.addEventListener("mousedown", mouseDown, false);
+canvas.addEventListener("mousemove", mouseMove, false);
+canvas.addEventListener("mouseup", mouseUp, false);
+canvas.addEventListener("mousewheel", zoom, false);
 
-function drawMode() {
-    mode = "draw";
-}
-
-function moveMode() {
-    mode = "move";
-}
-
-function startDragGrid(e) {
+// Handle mouse events
+function mouseDown(e) {
     lmbDown = true;
-    previousMousePos = [e.clientX, e.clientY];
+    mousePos = [e.clientX, e.clientY];
 }
-
-function mouseRelease(e) { lmbDown = false; }
-
-function onMouseMove(e) {
-    if (mode === "move") {
-        dragGrid(e);
+function mouseUp() { lmbDown = false; }
+function mouseMove(e) {
+    // Determine what mode the mouse is in and run that function
+    switch (mouseMode) {
+        case "move":
+            moveGrid(e); break;
+        case "draw":
+            break;
+        default:
+            break;
     }
 }
 
-function dragGrid(e) {
+// Zoom in and out with the mouse wheel
+function zoom(e) {
+    // Graph coordinates are preserved when zooming
+    let [mouseX, mouseY] = canvasToGraph(e.x, e.y);
+
+    switch (e.wheelDelta) {
+        case 240:
+            cz *= 1.21; break;
+        case 120:
+            cz *= 1.1; break;
+        case -120:
+            cz /= 1.1; break;
+        case -240:
+            cz /= 1.21; break;
+        default:
+            break;
+    }
+
+    // Calculate the mouse coordinates after zooming
+    [mouseX, mouseY] = graphToCanvas(mouseX, mouseY);
+
+    // Use this to find the change in camera position
+    cx += e.x - mouseX;
+    cy += e.y - mouseY;
+
+    // Clear the screen and redraw all of the grid lines with the new scale
+    two.clear();
+
+    xLine = two.makeLine(0, dim.height/2, dim.width, dim.height/2);
+    yLine = two.makeLine(dim.width/2, 0,  dim.width/2, dim.height);
+
+    xLine.linewidth = 5;
+    yLine.linewidth = 5;
+
+    smallXLines = [];
+    smallYLines = [];
+
+    for (let i = -cz; i <= dim.height + cz; i+=cz) {
+        smallXLines.push(two.makeLine(0, i, dim.width, i));
+    }
+
+    for (let i = -cz; i <= dim.width + cz; i+=cz) {
+        smallYLines.push(two.makeLine(i, 0, i, dim.height));
+    }
+
+    // Position these lines
+    updateGrid();
+}
+
+// Move the grid around with the mouse
+function moveGrid(e) {
     if (lmbDown) {
-        cx = cx + e.x - previousMousePos[0];
-        cy = cy + e.y - previousMousePos[1];
+        cx = cx + e.x - mousePos[0];
+        cy = cy + e.y - mousePos[1];
 
-        previousMousePos = [e.clientX, e.clientY];
+        mousePos = [e.clientX, e.clientY];
 
-        drawGrid();
+        updateGrid();
     }
 }
 
-function drawGrid() {
+// Functions for the mouse mode buttons
+function drawMode() { mouseMode = "draw"; }
+function moveMode() {  mouseMode = "move"; }
 
+function updateGrid() {
+    // Translate into the camera view
     xLine.translation.set(0, cy - dim.height / 2);
     yLine.translation.set(cx - dim.width / 2, 0);
 
+    // Reuse these lines when they go offscreen by using modulo
     for (let i = 0; i < smallXLines.length; i++) {
         smallXLines[i].translation.set(0, cy % cz);
     }
@@ -81,67 +141,14 @@ function drawGrid() {
     two.update();
 }
 
-function updateZoom(e) {
-    let [mx, my] = tkToGraph(e.x, e.y);
-
-    if (e.wheelDelta > 0) {
-        cz *= 1.1;
-    }
-    else if (e.wheelDelta < 0)
-    {
-        cz /= 1.1;
-    }
-
-    [mx, my] = graphToTk(mx, my);
-
-    cx += e.x - mx;
-    cy += e.y - my;
-
-    two.clear();
-
-    xLine = two.makeLine(0, dim.height/2, dim.width, dim.height/2);
-    xLine.linewidth = 5;
-    yLine = two.makeLine(dim.width/2, 0,  dim.width/2, dim.height);
-    yLine.linewidth = 5;
-
-    smallXLines = [];
-    for (let i = -cz; i <= dim.height + cz; i+=cz) {
-        smallXLines.push(two.makeLine(0, i, dim.width, i));
-    }
-
-    smallYLines = [];
-
-    for (let i = -cz; i <= dim.width + cz; i+=cz) {
-        smallYLines.push(two.makeLine(i, 0, i, dim.height));
-    }
-
-    drawGrid();
-}
-
-function tkToGraph(tx, ty) {
-    let gx = (tx - cx)/cz;
-    let gy = (-ty + cy)/cz;
+function canvasToGraph(x, y) {
+    let gx = (x - cx)/cz;
+    let gy = (-y + cy)/cz;
     return [gx, gy];
 }
 
-function graphToTk(gx, gy) {
-    let tx = cz * gx + cx;
-    let ty = -cz * gy + cy;
-    return [tx, ty];
-}
-
-class Vector {
-
-    constructor(drawer, x0, y0, x1, y1) {
-        this.drawer = drawer;
-        [this.x0, this.y0, this.x1, this.y1] = [x0, y0, x1, y1];
-
-        this.line = this.drawer.makeLine(x0, y0, x1, y1);
-        this.drawer.update();
-    }
-
-    draw() {
-        this.drawer.translation.set(cx  - dim.width / 2, cy - dim.height / 2);
-        this.drawer.update();
-    }
+function graphToCanvas(gx, gy) {
+    let x = cz * gx + cx;
+    let y = -cz * gy + cy;
+    return [x, y];
 }
