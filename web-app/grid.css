@@ -1,8 +1,3 @@
-div {
-    outline-color:darkblue;
-    outline-style:solid;
-}
-
 #move-button {
     background-size: 980px 980px;
     height: 100px;
@@ -18,4 +13,6 @@ div {
 #drawingarea {
     width: 1600px;
     height: 900px;
+    outline-color:darkblue;
+    outline-style:solid;
 }
