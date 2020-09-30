@@ -3,22 +3,25 @@ const dim = {width: 1600, height: 900};
 let two = new Two(dim);
 two.appendTo(ctx);
 
+let mode = "move";
+
 let [cx, cy, cz] = [dim.width/2, dim.height/2, 100];
 
-let previousMousePos = {x: 0, y: 0};
+let previousMousePos = [0, 0];
 let lmbDown = false;
 
 let xLine = two.makeLine(0, cy, dim.width, cy);
-xLine.linewidth = 5;
 let yLine = two.makeLine(cx, 0,  cx, dim.height);
+
+xLine.linewidth = 5;
 yLine.linewidth = 5;
 
 let smallXLines = [];
+let smallYLines = [];
+
 for (let i = -cz; i <= dim.height + cz; i+=cz) {
     smallXLines.push(two.makeLine(0, i, dim.width, i));
 }
-
-let smallYLines = [];
 
 for (let i = -cz; i <= dim.width + cz; i+=cz) {
     smallYLines.push(two.makeLine(i, 0, i, dim.height));
@@ -26,25 +29,38 @@ for (let i = -cz; i <= dim.width + cz; i+=cz) {
 
 drawGrid();
 
+ctx.addEventListener("mousedown", startDragGrid, false);
+ctx.addEventListener("mousemove", onMouseMove, false);
+ctx.addEventListener("mouseup", mouseRelease, false);
+ctx.addEventListener("mousewheel", updateZoom, false);
 
-document.addEventListener("mousedown", startDragGrid, false);
-document.addEventListener("mousemove", dragGrid, false);
-document.addEventListener("mouseup", mouseRelease, false);
-document.addEventListener("mousewheel", updateZoom, false);
+function drawMode() {
+    mode = "draw";
+}
+
+function moveMode() {
+    mode = "move";
+}
 
 function startDragGrid(e) {
     lmbDown = true;
-    previousMousePos = {x: e.clientX, y: e.clientY};
+    previousMousePos = [e.clientX, e.clientY];
 }
 
 function mouseRelease(e) { lmbDown = false; }
 
+function onMouseMove(e) {
+    if (mode === "move") {
+        dragGrid(e);
+    }
+}
+
 function dragGrid(e) {
     if (lmbDown) {
-        cx = cx + e.x - previousMousePos.x;
-        cy = cy + e.y - previousMousePos.y;
+        cx = cx + e.x - previousMousePos[0];
+        cy = cy + e.y - previousMousePos[1];
 
-        previousMousePos = {x: e.clientX, y: e.clientY};
+        previousMousePos = [e.clientX, e.clientY];
 
         drawGrid();
     }
@@ -114,18 +130,18 @@ function graphToTk(gx, gy) {
     return [tx, ty];
 }
 
-// class Vector {
-//
-//     constructor(canvas, x0, y0, x1, y1) {
-//         this.canvas = canvas;
-//         [this.x0, this.y0, this.x1, this.y1] = [x0, y0, x1, y1];
-//
-//         this.line = this.canvas.makeLine(x0, y0, x1, y1);
-//         this.canvas.update();
-//     }
-//
-//     draw() {
-//         this.line.translation.set(cx  - dim.width / 2, cy - dim.height / 2);
-//         this.canvas.update();
-//     }
-// }
+class Vector {
+
+    constructor(drawer, x0, y0, x1, y1) {
+        this.drawer = drawer;
+        [this.x0, this.y0, this.x1, this.y1] = [x0, y0, x1, y1];
+
+        this.line = this.drawer.makeLine(x0, y0, x1, y1);
+        this.drawer.update();
+    }
+
+    draw() {
+        this.drawer.translation.set(cx  - dim.width / 2, cy - dim.height / 2);
+        this.drawer.update();
+    }
+}
