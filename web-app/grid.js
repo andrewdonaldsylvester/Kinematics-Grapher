@@ -1,5 +1,5 @@
 // Find the drawing area and set up two.js
-const canvas = document.getElementById('drawingarea');
+const canvas = document.getElementById('drawing-area');
 const dim = {width: 1600, height: 900};
 
 let two = new Two(dim);
