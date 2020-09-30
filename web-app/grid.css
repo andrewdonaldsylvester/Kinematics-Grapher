@@ -2,3 +2,20 @@ div {
     outline-color:darkblue;
     outline-style:solid;
 }
+
+#move-button {
+    background-size: 980px 980px;
+    height: 100px;
+    width: 100px;
+}
+
+#draw-button {
+    background-size: 980px 980px;
+    height: 100px;
+    width: 100px;
+}
+
+#drawingarea {
+    width: 1600px;
+    height: 900px;
+}
