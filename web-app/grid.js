@@ -12,6 +12,8 @@ let [cx, cy, cz] = [dim.width/2, dim.height/2, 100];
 // Setup miscellaneous variables
 let mousePos = [0, 0];
 let particles = [];
+let hoveredParticle = null;
+let hoveredVector = null;
 
 // Initialize the variables for the lines and draw them
 let xLine = two.makeLine(0, dim.height/2, dim.width, dim.height/2);
@@ -36,7 +38,8 @@ position();
 
 // Bind mouse events to their respective functions
 canvas.addEventListener("mousedown", mouseDown, false);
-document.addEventListener("mousemove", moveGrid, false);
+document.addEventListener("mouseup", mouseUp, false);
+document.addEventListener("mousemove", mouseMove, false);
 document.addEventListener("mousewheel", zoom, false);
 document.addEventListener('contextmenu', event => event.preventDefault());
 
@@ -45,35 +48,47 @@ function mouseDown(e) {
     mousePos = [e.clientX, e.clientY];
     if (e.buttons % 2 === 1) {
 
-        let hovering = false;
+        hoveredParticle = null;
 
         for (let i = 0; i < particles.length; i++) {
             if (particles[i].hovering(e.clientX, e.clientY)) {
-                hovering = true;
+                hoveredParticle = particles[i];
             }
         }
 
-        if (!hovering) {
+        if (hoveredParticle === null) {
             let graphCoords = canvasToGraph(e.clientX, e.clientY);
-
-            if (particles.length >= 1) {
-                new Vector(graphCoords[0], graphCoords[1], particles[0]);
-            } else {
-                particles.push(new Particle(graphCoords[0], graphCoords[1]));
-            }
+            particles.push(new Particle(graphCoords[0], graphCoords[1]));
+            hoveredParticle = particles[particles.length - 1];
         }
     }
 }
 
-// Move the grid around with the mouse
-function moveGrid(e) {
+function mouseUp(e) {
+    if (e.buttons % 2 === 0) {
+        hoveredParticle = null;
+        hoveredVector = null;
+    }
+}
+
+function mouseMove(e) {
+
     if (e.buttons % 4 >= 2) {
-        cx = cx + e.x - mousePos[0];
-        cy = cy + e.y - mousePos[1];
+        moveGrid(e);
+    }
 
-        mousePos = [e.clientX, e.clientY];
+    if (e.buttons % 2 === 1) {
+        if (hoveredParticle !== null) {
+            let graphCoords = canvasToGraph(e.clientX, e.clientY);
 
-        position();
+            if (hoveredVector === null) {
+                hoveredVector = new Vector(graphCoords[0], graphCoords[1], hoveredParticle);
+
+            } else {
+                [hoveredVector.x, hoveredVector.y] = graphCoords;
+                hoveredVector.particle.draw();
+            }
+        }
     }
 }
 
@@ -123,6 +138,16 @@ function zoom(e) {
     position();
 }
 
+
+// Move the grid around with the mouse
+function moveGrid(e) {
+    cx = cx + e.x - mousePos[0];
+    cy = cy + e.y - mousePos[1];
+
+    mousePos = [e.clientX, e.clientY];
+
+    position();
+}
 
 // Translate all the objects into the camera view
 function position() {
@@ -177,8 +202,8 @@ Particle.prototype.draw = function() {
     }
 
     // Draw the circle and add it to the group
-    this.pointRadius = 0.05*cz;
-    this.circle = two.makeCircle(0, 0, 0.05*cz);
+    this.pointRadius = 0.1*cz;
+    this.circle = two.makeCircle(0, 0, 0.1*cz);
     this.circle.fill = "black";
 
     this.group = two.makeGroup(this.circle);
@@ -222,8 +247,13 @@ Vector.prototype.draw = function() {
     let particleCoords = graphToCanvas(this.particle.x, this.particle.y);
     this.line = two.makeLine(0, 0, coords[0] - particleCoords[0], coords[1] - particleCoords[1]);
 
-    this.lineWidth = 0.03*cz;
+    this.lineWidth = 0.05*cz;
     this.line.linewidth = this.lineWidth;
 
     this.line.addTo(this.particle.group);
 };
+
+Vector.prototype.hovered = function (mx, my) {
+
+};
+
