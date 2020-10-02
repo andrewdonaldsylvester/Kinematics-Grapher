@@ -1,15 +1,3 @@
-#move-button {
-    background-size: 980px 980px;
-    height: 100px;
-    width: 100px;
-}
-
-#draw-button {
-    background-size: 980px 980px;
-    height: 100px;
-    width: 100px;
-}
-
 #drawing-area {
     width: 1600px;
     height: 900px;
