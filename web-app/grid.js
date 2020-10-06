@@ -68,7 +68,9 @@ function mouseDown(e) {
     mousePos = [e.clientX - offsetX, e.clientY - offsetY];
     if (e.buttons % 2 === 1) {
 
-        hoveredParticle = null;
+        if (hoveredVector === null) {
+            hoveredParticle = null;
+        }
 
         for (let i = 0; i < particles.length; i++) {
             if (particles[i].hovering(e.clientX - offsetX, e.clientY - offsetY)) {
