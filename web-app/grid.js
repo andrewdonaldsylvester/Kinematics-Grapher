@@ -14,6 +14,9 @@ let mousePos = [0, 0];
 let particles = [];
 let hoveredParticle = null;
 let hoveredVector = null;
+let rect = canvas.getBoundingClientRect();
+let offsetX = rect.left;
+let offsetY = rect.top;
 
 // Initialize the variables for the lines and draw them
 let xLine = two.makeLine(0, dim.height/2, dim.width, dim.height/2);
@@ -22,15 +25,32 @@ let yLine = two.makeLine(dim.width/2, 0,  dim.width/2, dim.height);
 xLine.linewidth = 5;
 yLine.linewidth = 5;
 
+// let originLabel = two.makeText("0", dim.width/2 - 12.5, dim.height/2 + 17.5);
+// originLabel.size = 15;
+
 let smallXLines = [];
 let smallYLines = [];
 
+// let xLineLabels = [];
+// let yLineLabels = [];
+
 for (let i = -cz; i <= dim.height + cz; i+=cz) {
     smallXLines.push(two.makeLine(0, i, dim.width, i));
+
+    // if (i != dim.height / 2) {
+    //     xLineLabels.push(two.makeText(canvasToGraph(i)[0].toString(), dim.width / 2 - 12.5, i));
+    //     xLineLabels[xLineLabels.length - 1].size = 15;
+    // }
 }
 
 for (let i = -cz; i <= dim.width + cz; i+=cz) {
     smallYLines.push(two.makeLine(i, 0, i, dim.height));
+
+    // if (i != dim.width / 2) {
+    //     yLineLabels.push(two.makeText(canvasToGraph(i)[0].toString(), i, dim.height / 2 + 17.5));
+    //     yLineLabels[yLineLabels.length - 1].size = 15;
+    // }
+
 }
 
 // Position these lines
@@ -45,19 +65,19 @@ document.addEventListener('contextmenu', event => event.preventDefault());
 
 // Handle mouse events
 function mouseDown(e) {
-    mousePos = [e.clientX, e.clientY];
+    mousePos = [e.clientX - offsetX, e.clientY - offsetY];
     if (e.buttons % 2 === 1) {
 
         hoveredParticle = null;
 
         for (let i = 0; i < particles.length; i++) {
-            if (particles[i].hovering(e.clientX, e.clientY)) {
+            if (particles[i].hovering(e.clientX - offsetX, e.clientY - offsetY)) {
                 hoveredParticle = particles[i];
             }
         }
 
         if (hoveredParticle === null) {
-            let graphCoords = canvasToGraph(e.clientX, e.clientY);
+            let graphCoords = canvasToGraph(e.clientX - offsetX, e.clientY - offsetY);
             particles.push(new Particle(graphCoords[0], graphCoords[1]));
             hoveredParticle = particles[particles.length - 1];
         }
@@ -79,7 +99,7 @@ function mouseMove(e) {
 
     if (e.buttons % 2 === 1) {
         if (hoveredParticle !== null) {
-            let graphCoords = canvasToGraph(e.clientX, e.clientY);
+            let graphCoords = canvasToGraph(e.clientX - offsetX, e.clientY - offsetY);
 
             if (hoveredVector === null) {
                 hoveredVector = new Vector(graphCoords[0], graphCoords[1], hoveredParticle);
@@ -119,6 +139,9 @@ function zoom(e) {
     xLine.linewidth = 5;
     yLine.linewidth = 5;
 
+    // originLabel = two.makeText("0", dim.width/2 - 12.5, dim.height/2 + 17.5);
+    // originLabel.size = 15;
+
     smallXLines = [];
     smallYLines = [];
 
@@ -141,10 +164,10 @@ function zoom(e) {
 
 // Move the grid around with the mouse
 function moveGrid(e) {
-    cx = cx + e.x - mousePos[0];
-    cy = cy + e.y - mousePos[1];
+    cx = cx + e.x - offsetX - mousePos[0];
+    cy = cy + e.y - offsetY - mousePos[1];
 
-    mousePos = [e.clientX, e.clientY];
+    mousePos = [e.clientX - offsetX, e.clientY - offsetY];
 
     position();
 }
@@ -154,6 +177,9 @@ function position() {
     // Translate into the camera view
     xLine.translation.set(0, cy - dim.height / 2);
     yLine.translation.set(cx - dim.width / 2, 0);
+
+    // let originCoords = graphToCanvas(0, 0);
+    // originLabel.translation.set(cx - 12.5, cy + 17.5);
 
     // Reuse these lines when they go offscreen by using modulo
     for (let i = 0; i < smallXLines.length; i++) {
@@ -251,9 +277,24 @@ Vector.prototype.draw = function() {
     this.line.linewidth = this.lineWidth;
 
     this.line.addTo(this.particle.group);
+
+    this.triangle = two.makePolygon(coords[0] - particleCoords[0], coords[1] - particleCoords[1], this.particle.pointRadius, 3);
+    this.triangle.fill = "black";
+
+    let theta = Math.atan((coords[1] - particleCoords[1]) / (coords[0] - particleCoords[0]));
+
+    if (this.x < this.particle.x) {
+        theta += Math.PI;
+    }
+
+    this.triangle.rotation = theta - (Math.PI/6);
+
+    this.triangle.addTo(this.particle.group);
 };
 
-Vector.prototype.hovered = function (mx, my) {
-
+// Test if the mouse is on top of the vector's head
+Vector.prototype.hovering = function(mx, my) {
+    let canvasCoords = graphToCanvas(this.x, this.y);
+    let [dx, dy] = [mx - canvasCoords[0], my - canvasCoords[1]];
+    return (Math.sqrt(dx ** 2 + dy ** 2) <= this.pointRadius);
 };
-
