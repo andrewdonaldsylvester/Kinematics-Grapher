@@ -78,7 +78,7 @@ function mouseDown(e) {
 
         if (hoveredParticle === null) {
             let graphCoords = canvasToGraph(e.clientX - offsetX, e.clientY - offsetY);
-            particles.push(new Particle(graphCoords[0], graphCoords[1]));
+            particles.push(new Particle(Math.round(graphCoords[0]), Math.round(graphCoords[1])));
             hoveredParticle = particles[particles.length - 1];
         }
     }
@@ -102,10 +102,10 @@ function mouseMove(e) {
             let graphCoords = canvasToGraph(e.clientX - offsetX, e.clientY - offsetY);
 
             if (hoveredVector === null) {
-                hoveredVector = new Vector(graphCoords[0], graphCoords[1], hoveredParticle);
+                hoveredVector = new Vector(Math.round(graphCoords[0]), Math.round(graphCoords[1]), hoveredParticle);
 
             } else {
-                [hoveredVector.x, hoveredVector.y] = graphCoords;
+                [hoveredVector.x, hoveredVector.y] = [Math.round(graphCoords[0]), Math.round(graphCoords[1])];
                 hoveredVector.particle.draw();
             }
         }
@@ -115,7 +115,7 @@ function mouseMove(e) {
 // Zoom in and out with the mouse wheel
 function zoom(e) {
     // Graph coordinates are preserved when zooming
-    let [mouseX, mouseY] = canvasToGraph(e.x, e.y);
+    let [mouseX, mouseY] = canvasToGraph(e.x - offsetX, e.y - offsetY);
 
     if (e.wheelDelta > 0) {
         cz *= 1.1;
@@ -127,8 +127,8 @@ function zoom(e) {
     [mouseX, mouseY] = graphToCanvas(mouseX, mouseY);
 
     // Use this to find the change in camera position
-    cx += e.x - mouseX;
-    cy += e.y - mouseY;
+    cx += e.x - offsetX - mouseX;
+    cy += e.y - offsetY - mouseY;
 
     // Clear the screen and redraw all of the grid lines with the new scale
     two.clear();
@@ -210,6 +210,17 @@ function graphToCanvas(gx, gy) {
     return [x, y];
 }
 
+// Conversion to and from cartesian and polar
+function cartesianToPolar(x, y) {
+    let radius = Math.sqrt(x**2 + y**2);
+    let theta = Math.atan(y/x);
+    return {r: radius, t: theta};
+}
+function polarToCartesian(r, theta) {
+    let X = r * Math.cos(theta);
+    let Y = r * Math.sin(theta);
+    return {x: X, y: Y};
+}
 
 // Prototype object for a particle
 function Particle (x, y) {
@@ -271,21 +282,27 @@ function Vector(x, y, particle) {
 Vector.prototype.draw = function() {
     let coords = graphToCanvas(this.x, this.y);
     let particleCoords = graphToCanvas(this.particle.x, this.particle.y);
-    this.line = two.makeLine(0, 0, coords[0] - particleCoords[0], coords[1] - particleCoords[1]);
+
+    let tip = cartesianToPolar(coords[0] - particleCoords[0], coords[1] - particleCoords[1]);
+    let theta = tip.t;
+
+    tip = polarToCartesian(tip.r - this.particle.pointRadius, tip.t);
+
+    if (this.x < this.particle.x) {
+        tip.x *= -1;
+        tip.y *= -1;
+        theta += Math.PI;
+    }
+
+    this.line = two.makeLine(0, 0, tip.x, tip.y);
 
     this.lineWidth = 0.05*cz;
     this.line.linewidth = this.lineWidth;
 
     this.line.addTo(this.particle.group);
 
-    this.triangle = two.makePolygon(coords[0] - particleCoords[0], coords[1] - particleCoords[1], this.particle.pointRadius, 3);
+    this.triangle = two.makePolygon(tip.x, tip.y, this.particle.pointRadius, 3);
     this.triangle.fill = "black";
-
-    let theta = Math.atan((coords[1] - particleCoords[1]) / (coords[0] - particleCoords[0]));
-
-    if (this.x < this.particle.x) {
-        theta += Math.PI;
-    }
 
     this.triangle.rotation = theta - (Math.PI/6);
 
