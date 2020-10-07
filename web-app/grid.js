@@ -1,6 +1,6 @@
 // Find the drawing area
 const canvas = document.getElementById('drawing-area');
-const dim = {width: 1600, height: 900};
+let dim = {width: screen.width, height: screen.height};
 
 // Set up two.js
 let two = new Two(dim);
@@ -10,7 +10,7 @@ two.appendTo(canvas);
 let [cx, cy, cz] = [dim.width/2, dim.height/2, 100];
 
 // Setup miscellaneous variables
-let mousePos = [0, 0];
+let mouseEvent = null;
 let particles = [];
 let hoveredParticle = null;
 let hoveredVector = null;
@@ -19,11 +19,8 @@ let offsetX = rect.left;
 let offsetY = rect.top;
 
 // Initialize the variables for the lines and draw them
-let xLine = two.makeLine(0, dim.height/2, dim.width, dim.height/2);
-let yLine = two.makeLine(dim.width/2, 0,  dim.width/2, dim.height);
-
-xLine.linewidth = 5;
-yLine.linewidth = 5;
+let xLine = null;
+let yLine = null;
 
 // let originLabel = two.makeText("0", dim.width/2 - 12.5, dim.height/2 + 17.5);
 // originLabel.size = 15;
@@ -34,27 +31,7 @@ let smallYLines = [];
 // let xLineLabels = [];
 // let yLineLabels = [];
 
-for (let i = -cz; i <= dim.height + cz; i+=cz) {
-    smallXLines.push(two.makeLine(0, i, dim.width, i));
-
-    // if (i != dim.height / 2) {
-    //     xLineLabels.push(two.makeText(canvasToGraph(i)[0].toString(), dim.width / 2 - 12.5, i));
-    //     xLineLabels[xLineLabels.length - 1].size = 15;
-    // }
-}
-
-for (let i = -cz; i <= dim.width + cz; i+=cz) {
-    smallYLines.push(two.makeLine(i, 0, i, dim.height));
-
-    // if (i != dim.width / 2) {
-    //     yLineLabels.push(two.makeText(canvasToGraph(i)[0].toString(), i, dim.height / 2 + 17.5));
-    //     yLineLabels[yLineLabels.length - 1].size = 15;
-    // }
-
-}
-
-// Position these lines
-position();
+draw();
 
 // Bind mouse events to their respective functions
 canvas.addEventListener("mousedown", mouseDown, false);
@@ -63,9 +40,26 @@ document.addEventListener("mousemove", mouseMove, false);
 document.addEventListener("mousewheel", zoom, false);
 document.addEventListener('contextmenu', event => event.preventDefault());
 
+window.addEventListener("resize", onResize);
+
+function onResize() {
+    dim = {width: window.innerWidth, height: window.innerHeight};
+
+    cx = dim.width/2;
+    cy = dim.height/2;
+
+    rect = canvas.getBoundingClientRect();
+    offsetX = rect.left;
+    offsetY = rect.top;
+
+    // Clear the screen and redraw all of the grid lines with the new scale
+    two.clear();
+
+    draw();
+}
+
 // Handle mouse events
 function mouseDown(e) {
-    mousePos = [e.clientX - offsetX, e.clientY - offsetY];
     if (e.buttons % 2 === 1) {
 
         if (hoveredVector === null) {
@@ -80,7 +74,13 @@ function mouseDown(e) {
 
         if (hoveredParticle === null) {
             let graphCoords = canvasToGraph(e.clientX - offsetX, e.clientY - offsetY);
-            particles.push(new Particle(Math.round(graphCoords[0]), Math.round(graphCoords[1])));
+
+            if (e.ctrlKey) {
+                particles.push(new Particle(Math.round(graphCoords[0]), Math.round(graphCoords[1])));
+            } else {
+                particles.push(new Particle(graphCoords[0], graphCoords[1]));
+            }
+
             hoveredParticle = particles[particles.length - 1];
         }
     }
@@ -94,7 +94,6 @@ function mouseUp(e) {
 }
 
 function mouseMove(e) {
-
     if (e.buttons % 4 >= 2) {
         moveGrid(e);
     }
@@ -102,16 +101,28 @@ function mouseMove(e) {
     if (e.buttons % 2 === 1) {
         if (hoveredParticle !== null) {
             let graphCoords = canvasToGraph(e.clientX - offsetX, e.clientY - offsetY);
+            let roundedCoords = roundCoords(graphCoords[0], graphCoords[1], hoveredParticle.x, hoveredParticle.y);
 
             if (hoveredVector === null) {
-                hoveredVector = new Vector(Math.round(graphCoords[0]), Math.round(graphCoords[1]), hoveredParticle);
+                if (e.ctrlKey) {
+                    hoveredVector = new Vector(roundedCoords[0], roundedCoords[1], hoveredParticle);
+                } else {
+                    hoveredVector = new Vector(graphCoords[0], graphCoords[1], hoveredParticle);
+                }
 
             } else {
-                [hoveredVector.x, hoveredVector.y] = [Math.round(graphCoords[0]), Math.round(graphCoords[1])];
+                if (e.ctrlKey) {
+                    [hoveredVector.x, hoveredVector.y] = roundedCoords;
+                } else {
+                    [hoveredVector.x, hoveredVector.y] = [graphCoords[0], graphCoords[1]];
+                }
+
                 hoveredVector.particle.draw();
             }
         }
     }
+
+    mouseEvent = e;
 }
 
 // Zoom in and out with the mouse wheel
@@ -135,41 +146,56 @@ function zoom(e) {
     // Clear the screen and redraw all of the grid lines with the new scale
     two.clear();
 
+    draw();
+}
+
+
+// Move the grid around with the mouse
+function moveGrid(e) {
+    cx = cx + e.x - mouseEvent.x;
+    cy = cy + e.y - mouseEvent.y;
+
+    position();
+}
+
+function draw() {
     xLine = two.makeLine(0, dim.height/2, dim.width, dim.height/2);
     yLine = two.makeLine(dim.width/2, 0,  dim.width/2, dim.height);
 
     xLine.linewidth = 5;
     yLine.linewidth = 5;
 
-    // originLabel = two.makeText("0", dim.width/2 - 12.5, dim.height/2 + 17.5);
-    // originLabel.size = 15;
+// originLabel = two.makeText("0", dim.width/2 - 12.5, dim.height/2 + 17.5);
+// originLabel.size = 15;
 
     smallXLines = [];
     smallYLines = [];
 
+// xLineLabels = [];
+// yLineLabels = [];
+
     for (let i = -cz; i <= dim.height + cz; i+=cz) {
         smallXLines.push(two.makeLine(0, i, dim.width, i));
+
+        // if (i != dim.height / 2) {
+        //     xLineLabels.push(two.makeText(canvasToGraph(i)[0].toString(), dim.width / 2 - 12.5, i));
+        //     xLineLabels[xLineLabels.length - 1].size = 15;
+        // }
     }
 
     for (let i = -cz; i <= dim.width + cz; i+=cz) {
         smallYLines.push(two.makeLine(i, 0, i, dim.height));
+
+        // if (i != dim.width / 2) {
+        //     yLineLabels.push(two.makeText(canvasToGraph(i)[0].toString(), i, dim.height / 2 + 17.5));
+        //     yLineLabels[yLineLabels.length - 1].size = 15;
+        // }
+
     }
 
     for (let i = 0; i < particles.length; i++) {
         particles[i].draw();
     }
-
-    // Position these lines
-    position();
-}
-
-
-// Move the grid around with the mouse
-function moveGrid(e) {
-    cx = cx + e.x - offsetX - mousePos[0];
-    cy = cy + e.y - offsetY - mousePos[1];
-
-    mousePos = [e.clientX - offsetX, e.clientY - offsetY];
 
     position();
 }
@@ -222,6 +248,31 @@ function polarToCartesian(r, theta) {
     let X = r * Math.cos(theta);
     let Y = r * Math.sin(theta);
     return {x: X, y: Y};
+}
+
+function roundCoords(x, y, px, py) {
+    // Takes in graph coords
+
+    let roundedCartesian = [Math.round(x), Math.round(y)];
+
+    let roundedPolar = cartesianToPolar(x - px, y  - py);
+    roundedPolar = [Math.round(roundedPolar.r), Math.round(roundedPolar.t * 12/Math.PI) * Math.PI/12];
+
+    if (px > x) {
+        roundedPolar[1] += Math.PI;
+    }
+
+    roundedPolar = polarToCartesian(roundedPolar[0], roundedPolar[1]);
+    roundedPolar = [roundedPolar.x + px, roundedPolar.y + py];
+
+    let cartesianError = Math.sqrt((roundedCartesian[0] - x)**2 + (roundedCartesian[1] - y)**2);
+    let polarError = Math.sqrt((roundedPolar[0] - x)**2 + (roundedPolar[1] - y)**2);
+
+    if (cartesianError < polarError) {
+        return roundedCartesian;
+    } else {
+        return roundedPolar;
+    }
 }
 
 // Prototype object for a particle
