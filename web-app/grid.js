@@ -4,7 +4,7 @@ let dim = {width: screen.width, height: screen.height};
 let two = new Two(dim);
 two.appendTo(canvas);
 
-let [cx, cy, cz] = [dim.width/2, dim.height/2, 100];
+let [cx, cy, cz] = [window.innerWidth/2, window.innerHeight/2, 100];
 
 let prevMouseEvent = null;
 let particles = [];
