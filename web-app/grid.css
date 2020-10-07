@@ -1,6 +1,4 @@
-#drawing-area {
-    width: 1600px;
-    height: 900px;
-    outline-color:darkblue;
-    outline-style:solid;
+body {
+    overflow-y: hidden; /* Hide vertical scrollbar */
+    overflow-x: hidden; /* Hide horizontal scrollbar */
 }
