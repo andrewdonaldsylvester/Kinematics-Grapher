@@ -20,6 +20,14 @@ let yLine = null;
 let smallXLines = [];
 let smallYLines = [];
 
+let bigXLines = [];
+let bigYLines = [];
+
+let originLabel = undefined;
+
+// let xLabels = [];
+// let yLabels = [];
+
 draw();
 
 canvas.addEventListener("mousedown", mouseDown, false);
@@ -132,23 +140,21 @@ function moveGrid(e) {
 }
 
 function draw() {
-    xLine = two.makeLine(0, dim.height/2, dim.width, dim.height/2);
-    yLine = two.makeLine(dim.width/2, 0,  dim.width/2, dim.height);
-
-    xLine.linewidth = 5;
-    yLine.linewidth = 5;
-
-// originLabel = two.makeText("0", dim.width/2 - 12.5, dim.height/2 + 17.5);
-// originLabel.size = 15;
+    originLabel = two.makeText("0", dim.width/2 - 12.5, dim.height/2 + 17.5);
+    originLabel.size = 15;
 
     smallXLines = [];
     smallYLines = [];
 
-// xLineLabels = [];
-// yLineLabels = [];
+    bigXLines = [];
+    bigYLines = [];
+
+    // xLabels = [];
+    // yLabels = [];
 
     for (let i = -cz; i <= dim.height + cz; i+=cz) {
         smallXLines.push(two.makeLine(0, i, dim.width, i));
+        smallXLines[smallXLines.length - 1].stroke = "#5e5e5e";
 
         // if (i != dim.height / 2) {
         //     xLineLabels.push(two.makeText(canvasToGraph(i)[0].toString(), dim.width / 2 - 12.5, i));
@@ -158,6 +164,7 @@ function draw() {
 
     for (let i = -cz; i <= dim.width + cz; i+=cz) {
         smallYLines.push(two.makeLine(i, 0, i, dim.height));
+        smallYLines[smallYLines.length - 1].stroke = "#5e5e5e";
 
         // if (i != dim.width / 2) {
         //     yLineLabels.push(two.makeText(canvasToGraph(i)[0].toString(), i, dim.height / 2 + 17.5));
@@ -165,6 +172,30 @@ function draw() {
         // }
 
     }
+
+    for (let i = -5*cz; i <= dim.height + 5*cz; i+=5*cz) {
+        bigXLines.push(two.makeLine(0, i, dim.width, i));
+        bigXLines[bigXLines.length - 1].linewidth = 2;
+        bigXLines[bigXLines.length - 1].stroke = "#5e5e5e";
+
+        // yLabels.push(two.makeText(canvasToGraph(cx, i).y.toString(), cx, i));
+    }
+
+    for (let i = -5*cz; i <= dim.width + 5*cz; i+=5*cz) {
+        bigYLines.push(two.makeLine(i, 0, i, dim.height));
+        bigYLines[bigYLines.length - 1].linewidth = 2;
+        bigYLines[bigYLines.length - 1].stroke = "#5e5e5e";
+
+        // xLabels.push(two.makeText(canvasToGraph(i, cy).x.toString(), i, cy));
+    }
+
+    xLine = two.makeLine(0, dim.height/2, dim.width, dim.height/2);
+    yLine = two.makeLine(dim.width/2, 0,  dim.width/2, dim.height);
+
+    xLine.linewidth = 4;
+    xLine.stroke = "#303030";
+    yLine.linewidth = 4;
+    yLine.stroke = "#303030";
 
     for (let i = 0; i < particles.length; i++) {
         particles[i].draw();
@@ -176,14 +207,22 @@ function position() {
     xLine.translation.set(0, cy - dim.height / 2);
     yLine.translation.set(cx - dim.width / 2, 0);
 
-    // let originCoords = graphToCanvas(0, 0);
-    // originLabel.translation.set(cx - 12.5, cy + 17.5);
+    originLabel.translation.set(cx - 12.5, cy + 17.5);
 
     for (let i = 0; i < smallXLines.length; i++) {
         smallXLines[i].translation.set(0, cy % cz);
     }
     for (let i = 0; i < smallYLines.length; i++) {
         smallYLines[i].translation.set(cx % cz, 0);
+    }
+
+    for (let i = 0; i < bigXLines.length; i++) {
+        bigXLines[i].translation.set(0, cy % (5*cz));
+        // yLabels[i].translation.set(cx, cy % (5*cz));
+    }
+    for (let i = 0; i < bigYLines.length; i++) {
+        bigYLines[i].translation.set(cx % (5*cz), 0);
+        // xLabels[i].translation.set(cx % (5*cz), cy);
     }
 
     for (let i = 0; i < particles.length; i++) {
@@ -201,14 +240,10 @@ function graphToCanvas(gx, gy) {
 }
 
 function cartesianToPolar(x, y) {
-    let radius = Math.sqrt(x**2 + y**2);
-    let theta = Math.atan(y/x);
-    return {r: radius, t: theta};
+    return {r: Math.sqrt(x**2 + y**2), t: Math.atan(y/x)};
 }
 function polarToCartesian(r, theta) {
-    let X = r * Math.cos(theta);
-    let Y = r * Math.sin(theta);
-    return {x: X, y: Y};
+    return {x: r * Math.cos(theta), y: r * Math.sin(theta)};
 }
 
 function roundCoords(x, y, px, py) {
