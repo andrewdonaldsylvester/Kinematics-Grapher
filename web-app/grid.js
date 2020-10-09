@@ -25,8 +25,8 @@ let bigYLines = [];
 
 let originLabel = undefined;
 
-// let xLabels = [];
-// let yLabels = [];
+let xLabels = [];
+let yLabels = [];
 
 draw();
 
@@ -121,8 +121,8 @@ function zoom(e) {
 function resize() {
     dim = {width: window.innerWidth, height: window.innerHeight};
 
-    cx = dim.width/2;
-    cy = dim.height/2;
+    // cx = dim.width/2;
+    // cy = dim.height/2;
 
     rect = canvas.getBoundingClientRect();
     [offsetX, offsetY] = [rect.left, rect.top];
@@ -149,52 +149,43 @@ function draw() {
     bigXLines = [];
     bigYLines = [];
 
-    // xLabels = [];
-    // yLabels = [];
+    xLabels = [];
+    yLabels = [];
 
     for (let i = -cz; i <= dim.height + cz; i+=cz) {
         smallXLines.push(two.makeLine(0, i, dim.width, i));
         smallXLines[smallXLines.length - 1].stroke = "#5e5e5e";
-
-        // if (i != dim.height / 2) {
-        //     xLineLabels.push(two.makeText(canvasToGraph(i)[0].toString(), dim.width / 2 - 12.5, i));
-        //     xLineLabels[xLineLabels.length - 1].size = 15;
-        // }
     }
 
     for (let i = -cz; i <= dim.width + cz; i+=cz) {
         smallYLines.push(two.makeLine(i, 0, i, dim.height));
         smallYLines[smallYLines.length - 1].stroke = "#5e5e5e";
-
-        // if (i != dim.width / 2) {
-        //     yLineLabels.push(two.makeText(canvasToGraph(i)[0].toString(), i, dim.height / 2 + 17.5));
-        //     yLineLabels[yLineLabels.length - 1].size = 15;
-        // }
-
     }
 
     for (let i = -5*cz; i <= dim.height + 5*cz; i+=5*cz) {
         bigXLines.push(two.makeLine(0, i, dim.width, i));
-        bigXLines[bigXLines.length - 1].linewidth = 2;
+        bigXLines[bigXLines.length - 1].linewidth = 3;
         bigXLines[bigXLines.length - 1].stroke = "#5e5e5e";
-
-        // yLabels.push(two.makeText(canvasToGraph(cx, i).y.toString(), cx, i));
+        //
+        // yLabels.push(two.makeText(Math.round(canvasToGraph(cx, cy - i).y).toString(), cx - 12.5, cy - i));
+        // yLabels[yLabels.length - 1].size = 15;
     }
 
     for (let i = -5*cz; i <= dim.width + 5*cz; i+=5*cz) {
         bigYLines.push(two.makeLine(i, 0, i, dim.height));
-        bigYLines[bigYLines.length - 1].linewidth = 2;
+        bigYLines[bigYLines.length - 1].linewidth = 3;
         bigYLines[bigYLines.length - 1].stroke = "#5e5e5e";
-
-        // xLabels.push(two.makeText(canvasToGraph(i, cy).x.toString(), i, cy));
+        //
+        // xLabels.push(two.makeText(Math.round(canvasToGraph(cx + i, cy).x).toString(), cx + i, cy + 17.5));
+        // xLabels[xLabels.length - 1].size = 15;
     }
 
     xLine = two.makeLine(0, dim.height/2, dim.width, dim.height/2);
     yLine = two.makeLine(dim.width/2, 0,  dim.width/2, dim.height);
 
-    xLine.linewidth = 4;
+    xLine.linewidth = 5;
     xLine.stroke = "#303030";
-    yLine.linewidth = 4;
+    yLine.linewidth = 5;
     yLine.stroke = "#303030";
 
     for (let i = 0; i < particles.length; i++) {
@@ -218,11 +209,33 @@ function position() {
 
     for (let i = 0; i < bigXLines.length; i++) {
         bigXLines[i].translation.set(0, cy % (5*cz));
-        // yLabels[i].translation.set(cx, cy % (5*cz));
     }
     for (let i = 0; i < bigYLines.length; i++) {
         bigYLines[i].translation.set(cx % (5*cz), 0);
-        // xLabels[i].translation.set(cx % (5*cz), cy);
+    }
+
+    for (let i = 0; i < xLabels.length; i++) {
+        two.remove(xLabels[i]);
+    }
+    for (let i = 0; i < yLabels.length; i++) {
+        two.remove(yLabels[i]);
+    }
+
+    xLabels = [];
+    yLabels = [];
+
+    for (let i = -5*cz*Math.floor((dim.height-cy)/(5*cz)); i <= cy + dim.height/2 + 5*cz; i+=5*cz) {
+        if (i !== cy) {
+            yLabels.push(two.makeText(Math.round(canvasToGraph(cx, cy - i).y).toString(), cx - 12.5, cy - i));
+            yLabels[yLabels.length - 1].size = 15;
+        }
+    }
+
+    for (let i = -5*cz*Math.floor((dim.width+cx)/(5*cz)); i <= -cx + dim.width/2 + 5*cz; i+=5*cz) {
+        if (i !== cx) {
+            xLabels.push(two.makeText(Math.round(canvasToGraph(cx + i, cy).x).toString(), cx + i, cy + 17.5));
+            xLabels[xLabels.length - 1].size = 15;
+        }
     }
 
     for (let i = 0; i < particles.length; i++) {
